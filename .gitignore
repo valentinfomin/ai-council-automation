@@ -1,26 +1,7 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Virtual Environments
-.venv/
-venv/
-ENV/
-env/
-
-# Extension temporary & OS files
+# OS / System files
 .DS_Store
 Thumbs.db
+
+# Temporary & Log files
 *.log
 *.tmp
-
-# Local testing logs and checkpoints
-council_checkpoint.json
-council_mapping_log.json
-council_output.md
-stage1_proposals.md
-stage2_critiques.md

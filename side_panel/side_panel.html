@@ -8,8 +8,11 @@
 <body>
 
   <div class="header">
-    <span class="header-icon">🏛️</span>
-    <span class="header-title">Local AI Council</span>
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <span class="header-icon">🏛️</span>
+      <span class="header-title">Local AI Council</span>
+    </div>
+    <button id="btnNewChat" class="btn-new-chat">🆕 New Chat</button>
   </div>
 
   <div class="section-card">
@@ -81,6 +84,23 @@
       <button id="btnFollowUp" class="btn-followup">➤ Send</button>
     </div>
     <div id="followUpStatus" class="followup-status" style="display:none;"></div>
+  </div>
+
+  <!-- New Chat Confirmation Modal -->
+  <div id="newChatModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-title">🆕 Start New Council Session?</div>
+      <div class="modal-body">
+        This will clear current consensus resolution and history in this panel.
+        <div class="modal-warning">
+          ⚠️ <strong>IMPORTANT:</strong> For a completely clean session without previous context, please also click <strong>"New Chat"</strong> inside your <strong>ChatGPT, Gemini, Claude, and Grok</strong> tabs!
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btnCancelNewChat" class="btn-modal-cancel">Cancel</button>
+        <button id="btnConfirmNewChat" class="btn-modal-confirm">Clear & Start New Chat</button>
+      </div>
+    </div>
   </div>
 
   <script src="side_panel.js"></script>

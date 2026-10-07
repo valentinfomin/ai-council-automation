@@ -14,12 +14,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnFollowUp      = document.getElementById("btnFollowUp");
   const followUpStatus   = document.getElementById("followUpStatus");
 
+  // New Chat Modal elements
+  const btnNewChat        = document.getElementById("btnNewChat");
+  const newChatModal      = document.getElementById("newChatModal");
+  const btnCancelNewChat  = document.getElementById("btnCancelNewChat");
+  const btnConfirmNewChat = document.getElementById("btnConfirmNewChat");
+
   let allResults = { candidateLabels: {}, mapping: {} };
 
   // Shared state — set by runCouncil, reused by follow-up
-  let sessionTabIds  = {};   // { chatgpt: tabId, gemini: tabId, ... }
-  let sessionModels  = [];   // active model keys
+  let sessionTabIds   = {};   // { chatgpt: tabId, gemini: tabId, ... }
+  let sessionModels   = [];   // active model keys
   let sessionChairman = "";  // active chairman key
+  let followUpCount   = 0;
 
   function getChosenChairman(modelsList) {
     if (!modelsList || !modelsList.length) return "";
@@ -29,7 +36,102 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     return modelsList[0];
   }
-  let followUpCount = 0;
+
+  // ── STATE PERSISTENCE (chrome.storage.local) ───────────────────
+  function saveState() {
+    const checkedModels = Array.from(document.querySelectorAll(".model-chips input:checked")).map(cb => cb.value);
+    const state = {
+      taskPrompt: taskPrompt.value,
+      checkedModels,
+      chairmanSelect: chairmanSelect ? chairmanSelect.value : "auto",
+      debateRounds: debateRounds.value,
+      consensusText: consensusText.textContent,
+      consensusLabel: consensusCard.querySelector(".label") ? consensusCard.querySelector(".label").textContent : "",
+      consensusVisible: consensusCard.style.display !== "none",
+      followUpVisible: followUpSection.style.display !== "none",
+      followUpCount,
+      allResults,
+      sessionModels,
+      sessionChairman
+    };
+    chrome.storage.local.set({ council_session: state });
+  }
+
+  function restoreState() {
+    chrome.storage.local.get("council_session", (res) => {
+      if (chrome.runtime.lastError || !res || !res.council_session) return;
+      const s = res.council_session;
+
+      if (s.taskPrompt !== undefined) taskPrompt.value = s.taskPrompt;
+      if (s.chairmanSelect !== undefined && chairmanSelect) chairmanSelect.value = s.chairmanSelect;
+      if (s.debateRounds !== undefined && debateRounds) debateRounds.value = s.debateRounds;
+
+      if (s.checkedModels && Array.isArray(s.checkedModels)) {
+        document.querySelectorAll(".model-chips input[type='checkbox']").forEach(cb => {
+          cb.checked = s.checkedModels.includes(cb.value);
+        });
+      }
+
+      if (s.consensusText && s.consensusVisible) {
+        consensusText.textContent = s.consensusText;
+        if (s.consensusLabel && consensusCard.querySelector(".label")) {
+          consensusCard.querySelector(".label").textContent = s.consensusLabel;
+        }
+        consensusCard.style.display = "flex";
+      }
+
+      if (s.followUpVisible) {
+        followUpSection.style.display = "flex";
+      }
+
+      if (s.followUpCount !== undefined) followUpCount = s.followUpCount;
+      if (s.allResults) allResults = s.allResults;
+      if (s.sessionModels) sessionModels = s.sessionModels;
+      if (s.sessionChairman) sessionChairman = s.sessionChairman;
+    });
+  }
+
+  // Restore on load
+  restoreState();
+
+  // Auto-save UI input changes
+  taskPrompt.addEventListener("input", saveState);
+  if (chairmanSelect) chairmanSelect.addEventListener("change", saveState);
+  if (debateRounds) debateRounds.addEventListener("change", saveState);
+  document.querySelectorAll(".model-chips input").forEach(cb => {
+    cb.addEventListener("change", saveState);
+  });
+
+  // ── NEW CHAT MODAL HANDLERS ──────────────────────────────────────
+  if (btnNewChat) {
+    btnNewChat.addEventListener("click", () => {
+      newChatModal.style.display = "flex";
+    });
+  }
+
+  if (btnCancelNewChat) {
+    btnCancelNewChat.addEventListener("click", () => {
+      newChatModal.style.display = "none";
+    });
+  }
+
+  if (btnConfirmNewChat) {
+    btnConfirmNewChat.addEventListener("click", () => {
+      chrome.storage.local.remove("council_session");
+      taskPrompt.value = "";
+      consensusText.textContent = "";
+      consensusCard.style.display = "none";
+      followUpSection.style.display = "none";
+      progressText.style.display = "none";
+      followUpStatus.style.display = "none";
+      followUpPrompt.value = "";
+      followUpCount = 0;
+      sessionModels = [];
+      sessionChairman = "";
+      allResults = { candidateLabels: {}, mapping: {} };
+      newChatModal.style.display = "none";
+    });
+  }
 
   // --- Tab Management ---
   async function getModelTabs() {
@@ -218,6 +320,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Reveal follow-up panel with slide-in animation
     followUpSection.style.display = "flex";
     followUpSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    saveState();
   }
 
   // ── FOLLOW-UP HANDLER (Mini-Council) ──────────────────────────
@@ -344,6 +448,8 @@ document.addEventListener("DOMContentLoaded", () => {
     consensusCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
     followUpStatus.textContent = `✅ Consensus updated for follow-up #${followUpCount}!`;
+
+    saveState();
   }
 
   // Ctrl+Enter shortcut inside follow-up textarea
@@ -353,26 +459,4 @@ document.addEventListener("DOMContentLoaded", () => {
       btnFollowUp.click();
     }
   });
-
-  function addFollowUpDivider(label) {
-    const div = document.createElement("div");
-    div.className = "stage-title";
-    div.style.color = "var(--accent-cyan)";
-    div.textContent = label;
-    historyStream.appendChild(div);
-  }
-
-  function addFollowUpSubDivider(label) {
-    const div = document.createElement("div");
-    div.className = "stage-title";
-    div.style.cssText = "color:rgba(6,182,212,0.65); font-size:0.75rem; margin-top:0.25rem;";
-    div.textContent = label;
-    historyStream.appendChild(div);
-  }
-
-  function makeFollowUpAccordion(emoji, title, modelKey, bodyText) {
-    const item = makeAccordion(emoji, title, modelKey, bodyText, false);
-    item.classList.add("followup-response");
-    return item;
-  }
 });

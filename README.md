@@ -1,3 +1,5 @@
+[![Available in the Chrome Web Store](https://img.shields.io/chrome-web-store/v/hdjhibegabjceklhgdlcgeiepopeofkb?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4)](https://chromewebstore.google.com/detail/hdjhibegabjceklhgdlcgeiepopeofkb)
+
 # 🏛️ Local AI Council — Chrome / Brave Extension
 
 An automated local **AI Council** Chrome Extension (Manifest V3 Side Panel).

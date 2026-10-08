@@ -1,4 +1,4 @@
-[![Available in the Chrome Web Store](https://img.shields.io/chrome-web-store/v/hdjhibegabjceklhgdlcgeiepopeofkb?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4)](https://chromewebstore.google.com/detail/hdjhibegabjceklhgdlcgeiepopeofkb)
+<a href="https://chromewebstore.google.com/detail/hdjhibegabjceklhgdlcgeiepopeofkb" target="_blank"><img src="https://img.shields.io/chrome-web-store/v/hdjhibegabjceklhgdlcgeiepopeofkb?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4" alt="Available in the Chrome Web Store"></a>
 
 # 🏛️ Local AI Council — Chrome / Brave Extension
 

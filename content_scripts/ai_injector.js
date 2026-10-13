@@ -5,9 +5,24 @@ console.log("[AI Council Injector] Content script active on:", window.location.h
 // Model Selector Configurations
 const SELECTORS = {
   chatgpt: {
-    input: ["#prompt-textarea", "textarea#mobile-composer-prompt", "#mobile-composer-prompt", "textarea"],
+    input: [
+      // 2026 — contenteditable div composer
+      "#prompt-textarea",
+      "div[contenteditable='true'][data-id]",
+      "div[contenteditable='true'][data-placeholder]",
+      "div[contenteditable='true'].ProseMirror",
+      "div[contenteditable='true']",
+      // Legacy textarea fallbacks
+      "textarea#mobile-composer-prompt",
+      "#mobile-composer-prompt",
+      "textarea"
+    ],
     submit: [
+      // 2026 — new button IDs
+      "#composer-submit-button",
       "button[data-testid='send-button']",
+      "button[data-testid='fruit-picker-submit-button']",
+      "form button[class*='absolute']",
       "button[aria-label*='Send']",
       "button[aria-label*='send']",
       "button[aria-label*='Отправить']",
@@ -15,6 +30,7 @@ const SELECTORS = {
     ],
     stop: [
       "button[data-testid='stop-button']",
+      "button[aria-label*='Stop generating']",
       "button[aria-label*='Stop']",
       "button[aria-label*='stop']",
       "button[aria-label*='Остановить']",

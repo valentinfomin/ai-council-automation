@@ -6,27 +6,21 @@ console.log("[AI Council Injector] Content script active on:", window.location.h
 const SELECTORS = {
   chatgpt: {
     input: [
-      // 2026 — contenteditable div composer
+      // Primary — ChatGPT uses this stable ID (contenteditable div since 2025)
       "#prompt-textarea",
-      "div[contenteditable='true'][data-id]",
-      "div[contenteditable='true'][data-placeholder]",
-      "div[contenteditable='true'].ProseMirror",
-      "div[contenteditable='true']",
       // Legacy textarea fallbacks
       "textarea#mobile-composer-prompt",
       "#mobile-composer-prompt",
       "textarea"
     ],
     submit: [
-      // 2026 — new button IDs
+      // Specific IDs only — avoid broad selectors that match mic/voice buttons
       "#composer-submit-button",
       "button[data-testid='send-button']",
-      "button[data-testid='fruit-picker-submit-button']",
-      "form button[class*='absolute']",
+      "button[aria-label='Send message']",
+      "button[aria-label='Отправить сообщение']",
       "button[aria-label*='Send']",
-      "button[aria-label*='send']",
-      "button[aria-label*='Отправить']",
-      "button[aria-label*='отправить']"
+      "button[aria-label*='Отправить']"
     ],
     stop: [
       "button[data-testid='stop-button']",

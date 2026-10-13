@@ -6,8 +6,13 @@ console.log("[AI Council Injector] Content script active on:", window.location.h
 const SELECTORS = {
   chatgpt: {
     input: [
-      // Primary — ChatGPT uses this stable ID (contenteditable div since 2025)
+      // ChatGPT ProseMirror composer — try all contenteditable variants
+      "div.ProseMirror#prompt-textarea",
       "#prompt-textarea",
+      "div[contenteditable='plaintext-only']#prompt-textarea",
+      "div[contenteditable='true']#prompt-textarea",
+      "div.ProseMirror[contenteditable='plaintext-only']",
+      "div.ProseMirror[contenteditable='true']",
       // Legacy textarea fallbacks
       "textarea#mobile-composer-prompt",
       "#mobile-composer-prompt",
@@ -136,12 +141,30 @@ function findElement(selectors) {
     try {
       const els = document.querySelectorAll(sel);
       for (const el of els) {
+        // For contenteditable divs (ProseMirror), skip size check — they may have 0 height when empty
+        if (el.isContentEditable) {
+          const style = window.getComputedStyle(el);
+          if (style.display !== "none" && style.visibility !== "hidden") return el;
+        }
         const rect = el.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).display !== "none" && window.getComputedStyle(el).visibility !== "hidden") {
           return el;
         }
       }
     } catch (e) {}
+  }
+  return null;
+}
+
+// Wait up to maxMs for an element to appear (for slow-loading pages like ChatGPT)
+async function findElementWithRetry(selectors, maxMs = 8000) {
+  const interval = 300;
+  let waited = 0;
+  while (waited < maxMs) {
+    const el = findElement(selectors);
+    if (el) return el;
+    await new Promise(r => setTimeout(r, interval));
+    waited += interval;
   }
   return null;
 }
@@ -196,30 +219,38 @@ function setNativeValue(element, value) {
   }
 }
 
-// Inject Prompt Text into ContentEditable or Textarea
+// Inject Prompt Text into ContentEditable (ProseMirror) or Textarea
 function injectPrompt(inputEl, text) {
   inputEl.focus();
 
-  // Method 1: Try execCommand (Native Browser Edit simulation — works best with React/Vue)
+  // Method 1: ProseMirror / execCommand path (recommended for ChatGPT)
   let success = false;
   try {
     if (inputEl.isContentEditable) {
+      // Clear first, then insert — this is the only reliable way with ProseMirror
       document.execCommand("selectAll", false, null);
+      document.execCommand("delete", false, null);
       success = document.execCommand("insertText", false, text);
+      // Fire input event so React state updates
+      inputEl.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: text }));
     } else {
       inputEl.select();
       success = document.execCommand("insertText", false, text);
     }
   } catch (e) {}
 
-  // Method 2: Native Setter + InputEvent fallback
+  // Method 2: Native Setter + InputEvent fallback (for plain textareas)
   if (!success || (inputEl.value !== text && inputEl.textContent !== text)) {
     if (inputEl.isContentEditable) {
-      inputEl.innerHTML = "";
-      const p = document.createElement("p");
-      p.textContent = text;
-      inputEl.appendChild(p);
-      inputEl.dispatchEvent(new InputEvent("input", { bubbles: true, cancelable: true, inputType: "insertText", data: text }));
+      // Last resort for contenteditable: clear and set text node
+      inputEl.focus();
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(inputEl);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.execCommand("insertText", false, text);
+      inputEl.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: text }));
     } else {
       setNativeValue(inputEl, text);
       inputEl.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType: "insertText", data: text }));
@@ -237,7 +268,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const key = getModelKey();
         const cfg = SELECTORS[key];
-        const inputEl = findElement(cfg.input);
+        // Use retry for slow-loading pages (e.g. ChatGPT ProseMirror mounts late)
+        const inputEl = await findElementWithRetry(cfg.input, 8000);
 
         if (!inputEl) {
           sendResponse({ success: false, error: `Prompt input element not found on ${key}` });
